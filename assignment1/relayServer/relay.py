@@ -76,12 +76,12 @@ class Message:
                 else:
                     raise RuntimeError("Peer closed.")
 
-            if recv_data:
-                data.outb += recv_data
-            else:
-                print(f"Closing connection to {data.addr}")
-                sel.unregister(sock)
-                sock.close()
+            # if recv_data:
+            #     data.outb += recv_data
+            # else:
+                # print(f"Closing connection to {data.addr}")
+                # sel.unregister(self.sock)
+                # self.sock.close()
 
             if self._jsonheader_len is None:
                 self.process_protoheader()
@@ -123,31 +123,6 @@ def accept_wrapper(sock):
     #         sent = sock.send(data.outb)  # Should be ready to write
     #         data.outb = data.outb[sent:]
     
-
-if len(sys.argv) != 5:
-    print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>")
-    sys.exit(1)
-
-sel=selectors.DefaultSelector()
-
-# taking hosts and ports of the relay server and dump server as
-# command line arguments
-host=sys.argv[1]
-port=int(sys.argv[2])
-dumpHost=sys.argv[3]
-dumpPort=int(sys.argv[4])
-
-
-# function that accepts connections from client server
-def accept_wrapper(sock):
-    conn, addr = sock.accept()  # Should be ready to read
-    print(f"Accepted connection from {addr}")
-    conn.setblocking(False)
-    message = Message(sel, conn, addr)
-    sel.register(conn, selectors.EVENT_READ, data=message)
-    # data = types.SimpleNamespace(addr=addr, inb=b"", outb=b"")
-    # events = selectors.EVENT_READ #| selectors.EVENT_WRITE
-    # sel.register(conn, events, data=data)
 
 
 
