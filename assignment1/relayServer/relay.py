@@ -1,6 +1,9 @@
 import socket
 import selectors
 import sys
+import struct
+import json
+import traceback
 
 class Message:
     def __init__(self, selector, sock, addr):
@@ -23,21 +26,20 @@ class Message:
             self._recv_buffer = self._recv_buffer[hdrlen:]
     
     def handle_push(self,jsonheader,length):
-        jsonheader_bytes=json.dumps(jsonheader, ensure_ascii=False).encode()
+        jsonheader_bytes=json.dumps(self.jsonheader, ensure_ascii=False).encode()
         message_hdr = struct.pack(">H", len(jsonheader_bytes))
 
         message = message_hdr + jsonheader_bytes + self._recv_buffer
         try:
                 # Should be ready to write
                 sent = dumpSocket.send(self._send_buffer)
-            except BlockingIOError:
-                # Resource temporarily unavailable (errno EWOULDBLOCK)
-                pass
-            else:
-                self._send_buffer = self._send_buffer[sent:]
-                # Close when the buffer is drained. The response has been sent.
-                if sent and not self._send_buffer:
-                    self.close()
+        except BlockingIOError:
+            pass
+        else:
+            self._send_buffer = self._send_buffer[sent:]
+            # Close when the buffer is drained. The response has been sent.
+            if sent and not self._send_buffer:
+                self.close()
 
 
 
@@ -56,37 +58,37 @@ class Message:
                     raise ValueError(f"Missing required header '{reqhdr}'.")
             if self.jsonheader["request"]=="push":
                 length=self.jsonheader["lengthofdata"]
-                self.handle_push(jsonheader,length)
+                self.handle_push(self.jsonheader,length)
 
     def service_connection(self,mask):
-    if mask & selectors.EVENT_READ:
-        # recv_data = sock.recv(1024)  # Should be ready to read
-        # def _read(self):
-        try:
-            # Should be ready to read
-            data = self.sock.recv(4096)
-        except BlockingIOError:
-            # Resource temporarily unavailable (errno EWOULDBLOCK)
-            pass
-        else:
-            if data:
-                self._recv_buffer += data
+        if mask & selectors.EVENT_READ:
+            # recv_data = sock.recv(1024)  # Should be ready to read
+            # def _read(self):
+            try:
+                # Should be ready to read
+                data = self.sock.recv(4096)
+            except BlockingIOError:
+                # Resource temporarily unavailable (errno EWOULDBLOCK)
+                pass
             else:
-                raise RuntimeError("Peer closed.")
+                if data:
+                    self._recv_buffer += data
+                else:
+                    raise RuntimeError("Peer closed.")
 
-        if recv_data:
-            data.outb += recv_data
-        else:
-            print(f"Closing connection to {data.addr}")
-            sel.unregister(sock)
-            sock.close()
+            if recv_data:
+                data.outb += recv_data
+            else:
+                print(f"Closing connection to {data.addr}")
+                sel.unregister(sock)
+                sock.close()
 
-        if self._jsonheader_len is None:
-            self.process_protoheader()
+            if self._jsonheader_len is None:
+                self.process_protoheader()
 
-        if self._jsonheader_len is not None:
-            if self.jsonheader is None:
-                self.process_jsonheader()
+            if self._jsonheader_len is not None:
+                if self.jsonheader is None:
+                    self.process_jsonheader()
 
 if len(sys.argv) != 5:
     print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>")
@@ -165,7 +167,7 @@ sel.register(relaySocket, selectors.EVENT_READ, data=None)
 dumpSocket= socket.socket()
 dumpSocket.connect((dumpHost,dumpPort))
 dumpSocket.setblocking(False)
-sel.register(dumpSocket, selectors.EVENT_WRITE, data=NONE)
+sel.register(dumpSocket, selectors.EVENT_WRITE,data=None)
 
 # checking if the objects have been connected already
 # if not connected, then making the connection
