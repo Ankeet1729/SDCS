@@ -94,7 +94,9 @@ if len(sys.argv) != 5:
     print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>")
     sys.exit(1)
 
-sel=selectors.DefaultSelector()
+selC=selectors.DefaultSelector()
+
+selS=selectors.DefaultSelector()
 
 # taking hosts and ports of the relay server and dump server as
 # command line arguments
@@ -109,8 +111,8 @@ def accept_wrapper(sock):
     conn, addr = sock.accept()  # Should be ready to read
     print(f"Accepted connection from {addr}")
     conn.setblocking(False)
-    message = Message(sel, conn, addr)
-    sel.register(conn, selectors.EVENT_READ, data=message)
+    message = Message(selC, conn, addr)
+    selC.register(conn, selectors.EVENT_READ, data=message)
 
 
 
@@ -136,20 +138,20 @@ relaySocket.bind((host,port))
 relaySocket.listen()
 print(f"listening on {(host,port)}")
 relaySocket.setblocking(False)
-sel.register(relaySocket, selectors.EVENT_READ, data=None)
+selC.register(relaySocket, selectors.EVENT_READ, data=None)
 
 #creating socket for relay server to dump server
 dumpSocket= socket.socket()
 dumpSocket.connect((dumpHost,dumpPort))
 dumpSocket.setblocking(False)
-sel.register(dumpSocket, selectors.EVENT_WRITE,data=None)
+selS.register(dumpSocket, selectors.EVENT_WRITE,data=None)
 
 # checking if the objects have been connected already
 # if not connected, then making the connection
 # if connected, then receiving data
 try:
     while True:
-        events = sel.select(timeout=None)
+        events = selC.select(timeout=None)
         for key, mask in events:
             if key.data is None:
                 accept_wrapper(key.fileobj)
@@ -167,7 +169,8 @@ try:
 except KeyboardInterrupt:
     print("Caught keyboard interrupt, exiting")
 finally:
-    sel.close()
+    selC.close()
+    selS.close()
 
 
 
