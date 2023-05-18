@@ -2,7 +2,7 @@
 
 ## Project Group: Ankeet Saha and Jahnvi Shaw
 
-The relay server for assignment 1 is contained in the folder `relay server` under `assignment 1` folder
+The relay server for assignment 1 is contained in the folder `relayServer` under folder `assignment1`
 
 **Usage**
 
