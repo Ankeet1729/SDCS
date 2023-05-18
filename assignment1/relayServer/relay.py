@@ -4,7 +4,9 @@ import sys
 import struct
 import json
 import traceback
+import io
 
+# defining a message class that deals with the jsonheader and request(push) handling
 class Message:
     def __init__(self, selector, sock, addr):
         self.selector = selector
@@ -16,6 +18,24 @@ class Message:
         self.jsonheader = None
         self.request = None
         self.response_created = False
+    
+    def close(self):
+        print(f"Closing connection to {self.addr}")
+        try:
+            self.selector.unregister(self.sock)
+        except Exception as e:
+            print(
+                f"Error: selector.unregister() exception for "
+                f"{self.addr}: {e!r}"
+            )
+
+        try:
+            self.sock.close()
+        except OSError as e:
+            print(f"Error: socket.close() exception for {self.addr}: {e!r}")
+        finally:
+            # Delete reference to socket object for garbage collection
+            self.sock = None
 
     def process_protoheader(self):
         hdrlen = 2
@@ -25,14 +45,15 @@ class Message:
             )[0]
             self._recv_buffer = self._recv_buffer[hdrlen:]
     
-    def handle_push(self,jsonheader,length):
-        jsonheader_bytes=json.dumps(self.jsonheader, ensure_ascii=False).encode()
+    def handle_push(self,jsonheader):
+        jsonheader_bytes=json.dumps(jsonheader, ensure_ascii=False).encode()
         message_hdr = struct.pack(">H", len(jsonheader_bytes))
 
         message = message_hdr + jsonheader_bytes + self._recv_buffer
+        self._send_buffer+=message
         try:
-                # Should be ready to write
-                sent = dumpSocket.send(self._send_buffer)
+                # Sending data to dump server
+                sent = dumpSocket.send(message)
         except BlockingIOError:
             pass
         else:
@@ -45,53 +66,55 @@ class Message:
 
     def process_jsonheader(self):
         hdrlen = self._jsonheader_len
-        if len(self._recv_buffer) >= hdrlen:
-            self.jsonheader = json.load(self._recv_buffer[:hdrlen]     ) #space left out to comeback for utf-8 issue in future if required
+        if len(self._recv_buffer) >= hdrlen: 
+            tiow = io.TextIOWrapper(
+                io.BytesIO(self._recv_buffer[:hdrlen]),encoding="utf-8",newline=""
+            )
+            self.jsonheader  = json.load(tiow)
+            tiow.close()
             self._recv_buffer = self._recv_buffer[hdrlen:]
             for reqhdr in (
                 "byteorder",
                 "lengthofdata",
                 "request",
-                # "user",
+                "user",
             ):
                 if reqhdr not in self.jsonheader:
                     raise ValueError(f"Missing required header '{reqhdr}'.")
+                # checking if the request is push
             if self.jsonheader["request"]=="push":
-                length=self.jsonheader["lengthofdata"]
-                self.handle_push(self.jsonheader,length)
+                self.handle_push(self.jsonheader)
+            
 
     def service_connection(self,mask):
         if mask & selectors.EVENT_READ:
-            # recv_data = sock.recv(1024)  # Should be ready to read
-            # def _read(self):
             try:
                 # Should be ready to read
-                data = self.sock.recv(4096)
+                data = self.sock.recv(1024)
             except BlockingIOError:
                 # Resource temporarily unavailable (errno EWOULDBLOCK)
                 pass
             else:
-                if data:
+                if data: # checking if the data has been received from the client
                     self._recv_buffer += data
-                else:
-                    raise RuntimeError("Peer closed.")
+                    if self._jsonheader_len is None:
+                        self.process_protoheader()
 
-            # if recv_data:
-            #     data.outb += recv_data
-            # else:
-                # print(f"Closing connection to {data.addr}")
-                # sel.unregister(self.sock)
-                # self.sock.close()
+                    if self._jsonheader_len is not None:
+                        if self.jsonheader is None:
+                            self.process_jsonheader()
+    
+                else: # closing connection with client if data is empty bytes 
+                    print(f"Closing connection to {self.addr}")
+                    selC.unregister(self.sock)
+                    self.sock.close()
 
-            if self._jsonheader_len is None:
-                self.process_protoheader()
+            
 
-            if self._jsonheader_len is not None:
-                if self.jsonheader is None:
-                    self.process_jsonheader()
+# checking if the number of arguments is 5
 
 if len(sys.argv) != 5:
-    print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>")
+    print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>") # if number of arguments is not 5, then prompting the user with the usage of the server
     sys.exit(1)
 
 selC=selectors.DefaultSelector()
@@ -113,22 +136,6 @@ def accept_wrapper(sock):
     conn.setblocking(False)
     message = Message(selC, conn, addr)
     selC.register(conn, selectors.EVENT_READ, data=message)
-
-
-
-
-#function that receives and sends data to the client server
-
-    # if mask & selectors.EVENT_WRITE:
-    #     if data.outb:
-    #         print(f"Echoing {data.outb!r} to {data.addr}")
-    #         sent = sock.send(data.outb)  # Should be ready to write
-    #         data.outb = data.outb[sent:]
-    
-
-
-
-#function that receives and sends data to the client server
 
 
 #binding the relay server with client
@@ -169,6 +176,7 @@ try:
 except KeyboardInterrupt:
     print("Caught keyboard interrupt, exiting")
 finally:
+    # closing selector objects
     selC.close()
     selS.close()
 
