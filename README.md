@@ -4,7 +4,7 @@
 
 The relay server for assignment 1 is contained in the folder `relay server` under `assignment 1` folder
 
-** Usage **
+**Usage**
 
 To test the relay server, first run the dump server with the command
 
