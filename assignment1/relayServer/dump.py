@@ -1,8 +1,13 @@
 import socket
 import selectors
+import sys
 
-HOST = 'localhost'
-PORT = 9000  
+if len(sys.argv) !=3:
+    print(f"usage: {sys.argv[0]} <host> <port>")
+    sys.exit(1)
+
+HOST = sys.argv[1]
+PORT = int(sys.argv[2])  
 
 sel=selectors.DefaultSelector()
 
