@@ -58,7 +58,7 @@ class Message:
             pass
         else:
             self._send_buffer = self._send_buffer[sent:]
-            # Close when the buffer is drained. The response has been sent.
+            # Close when the buffer is drained and the response has been sent.
             if sent and not self._send_buffer:
                 self.close()
 

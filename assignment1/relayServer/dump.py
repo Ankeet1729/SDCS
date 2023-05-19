@@ -7,10 +7,11 @@ if len(sys.argv) !=3:
     sys.exit(1)
 
 HOST = sys.argv[1]
-PORT = int(sys.argv[2])  
+PORT = int(sys.argv[2])
 
 sel=selectors.DefaultSelector()
 
+redacted="O{'byteorder': 'little', 'lengthofdata': 10, 'request': 'push', 'user': 'admin'}"
 with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
     s.bind((HOST, PORT))
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -28,5 +29,6 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             else:
                 print("Data received successfully. Printing data...")
                 data=data.decode('utf-8')
+                data=data[len(redacted)+1:len(data)]
                 print(data)
 
