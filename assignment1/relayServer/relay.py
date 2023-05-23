@@ -113,8 +113,8 @@ class Message:
 
 # checking if the number of arguments is 5
 
-if len(sys.argv) != 5:
-    print(f"Usage: {sys.argv[0]} <host> <port> <dumpHost> <dumpPort>") # if number of arguments is not 5, then prompting the user with the usage of the server
+if len(sys.argv) != 4:
+    print(f"Usage: {sys.argv[0]} <dumpHost> <dumpPort>") # if number of arguments is not 5, then prompting the user with the usage of the server
     sys.exit(1)
 
 selC=selectors.DefaultSelector()
@@ -124,9 +124,9 @@ selS=selectors.DefaultSelector()
 # taking hosts and ports of the relay server and dump server as
 # command line arguments
 host=sys.argv[1]
-port=int(sys.argv[2])
-dumpHost=sys.argv[3]
-dumpPort=int(sys.argv[4])
+port=8000
+dumpHost=sys.argv[2]
+dumpPort=int(sys.argv[3])
 
 
 # function that accepts connections from client server
