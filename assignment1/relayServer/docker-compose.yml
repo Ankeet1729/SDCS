@@ -1,0 +1,22 @@
+version: '3'
+services:
+  relay:
+    build:
+      context: ./
+      dockerfile: Dockerfile.relay
+    ports:
+      - "8000:8000"  # Adjust the port number if needed
+    depends_on:
+      - dump
+    networks:
+      - mynetwork
+
+  dump:
+    build:
+      context: ./
+      dockerfile: Dockerfile.dump
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
