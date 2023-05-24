@@ -5,7 +5,7 @@ services:
       context: ./
       dockerfile: Dockerfile.relay
     ports:
-      - "8000:8000"  # Adjust the port number if needed
+      - "8000:8000"
     depends_on:
       - dump
     networks:
@@ -15,6 +15,8 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.dump
+    ports:
+      - "9000:9000"
     networks:
       - mynetwork
 

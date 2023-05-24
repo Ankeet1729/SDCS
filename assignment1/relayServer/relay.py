@@ -114,7 +114,7 @@ class Message:
 # checking if the number of arguments is 5
 
 if len(sys.argv) != 4:
-    print(f"Usage: {sys.argv[0]} <dumpHost> <dumpPort>") # if number of arguments is not 5, then prompting the user with the usage of the server
+    print(f"Usage: {sys.argv[0]} <host> <dumpHost> <dumpPort>") # if number of arguments is not 5, then prompting the user with the usage of the server
     sys.exit(1)
 
 selC=selectors.DefaultSelector()
