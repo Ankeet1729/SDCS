@@ -2,23 +2,25 @@ version: '3'
 services:
   relay:
     build:
-      context: ./
+      context: ./relay
       dockerfile: Dockerfile.relay
     ports:
-      - "8000:8000"
-    depends_on:
-      - dump
+      - 8000:8000
+    volumes:
+      - ./relay:/app
     networks:
       - mynetwork
-
   dump:
     build:
-      context: ./
+      context: ./dump
       dockerfile: Dockerfile.dump
-    ports:
-      - "9000:9000"
+    volumes:
+      - ./dump:/app
     networks:
       - mynetwork
+    ports:
+      - 9000:9000
 
 networks:
   mynetwork:
+    driver: bridge
